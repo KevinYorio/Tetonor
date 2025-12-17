@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tetonor – Juego de Lógica</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.grid-top {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.cell {
+  background: #fff;
+  border: 2px solid #333;
+  padding: 5px;
+  text-align: center;
+}
+
+.row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+input {
+  width: 40px;
+  text-align: center;
+}
+
+input[readonly] {
+  background: #ddd;
+  font-weight: bold;
+}
+
+.op {
+  width: 30px;
+}
+
+.result {
+  margin-top: 5px;
+  font-weight: bold;
+}
+
+.grid-bottom {
+  display: grid;
+  grid-template-columns: repeat(16, 1fr);
+  gap: 5px;
+  margin-bottom: 20px;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+button {
+  padding: 10px 15px;
+  cursor: pointer;
+}
+
+/* ---- BOTÓN MERCADO PAGO ---- */
+.support {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.support a {
+  display: inline-block;
+  background: #009ee3;
+  color: white;
+  padding: 14px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.support a:hover {
+  background: #007bb5;
+}
+</style>
+</head>
+<body>
+
+<h1>TETONOR</h1>
+
+<div class="grid-top" id="gridTop"></div>
+
+<div class="grid-bottom" id="gridBottom"></div>
+
+<div class="controls">
+  <button onclick="check()">Comprobar</button>
+  <button onclick="hint()">Pista</button>
+  <button onclick="reset()">Reiniciar</button>
+  <button onclick="newGame()">Nuevo nivel</button>
+</div>
+
+<!-- BOTÓN DE APOYO -->
+<div class="support">
+  <a
+    href="https://www.mercadopago.com.ar/transferencias?alias=alexjauria.mp"
+    target="_blank"
+    rel="noopener"
+  >
+    ❤️ Apoyá a Kevin en Mercado Pago por su trabajo
+  </a>
+</div>
+
+<script>
+let solution = {};
+let givenBottom = new Set();
+
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function generateBottom() {
+  let nums = [];
+  while (nums.length < 16) {
+    nums.push(randomInt(1, 20));
+  }
+  nums.sort((a, b) => a - b);
+  return nums;
+}
+
+function generateGame() {
+  solution = { bottom: generateBottom(), pairs: [] };
+  givenBottom.clear();
+
+  let nums = [...solution.bottom];
+
+  while (nums.length) {
+    let a = nums.shift();
+    let b = nums.shift();
+    solution.pairs.push({
+      a, b,
+      sum: a + b,
+      prod: a * b
+    });
+  }
+
+  // Elegir entre 4 y 8 números iniciales visibles
+  let cantidad = randomInt(4, 8);
+  let indices = [...Array(16).keys()].sort(() => Math.random() - 0.5);
+  indices.slice(0, cantidad).forEach(i => givenBottom.add(i));
+}
+
+function draw() {
+  const top = document.getElementById("gridTop");
+  const bottom = document.getElementById("gridBottom");
+  top.innerHTML = "";
+  bottom.innerHTML = "";
+
+  let results = [];
+  solution.pairs.forEach(p => {
+    results.push({ a: p.a, b: p.b, op: "+", val: p.sum });
+    results.push({ a: p.a, b: p.b, op: "×", val: p.prod });
+  });
+
+  results = results.sort(() => Math.random() - 0.5);
+
+  results.forEach((r, i) => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.innerHTML = `
+      <div class="row">
+        <input data-i="${i}" data-f="a">
+        <select class="op" data-i="${i}">
+          <option value="+">+</option>
+          <option value="×">×</option>
+        </select>
+        <input data-i="${i}" data-f="b">
+      </div>
+      <div class="result">${r.val}</div>
+    `;
+    cell.dataset.solution = JSON.stringify(r);
+    top.appendChild(cell);
+  });
+
+  solution.bottom.forEach((n, i) => {
+    const input = document.createElement("input");
+    input.dataset.i = i;
+
+    if (givenBottom.has(i)) {
+      input.value = n;
+      input.readOnly = true;
+    }
+
+    bottom.appendChild(input);
+  });
+}
+
+function check() {
+  let ok = true;
+
+  document.querySelectorAll(".cell").forEach(cell => {
+    const sol = JSON.parse(cell.dataset.solution);
+    const a = cell.querySelector('input[data-f="a"]').value;
+    const b = cell.querySelector('input[data-f="b"]').value;
+    const op = cell.querySelector("select").value;
+    if (+a !== sol.a || +b !== sol.b || op !== sol.op) ok = false;
+  });
+
+  document.querySelectorAll(".grid-bottom input").forEach((i, idx) => {
+    if (+i.value !== solution.bottom[idx]) ok = false;
+  });
+
+  alert(ok ? "✔️ Correcto!" : "❌ Hay errores");
+}
+
+function hint() {
+  let options = [];
+
+  document.querySelectorAll(".cell").forEach(cell => {
+    const sol = JSON.parse(cell.dataset.solution);
+    const a = cell.querySelector('input[data-f="a"]');
+    const b = cell.querySelector('input[data-f="b"]');
+    const op = cell.querySelector("select");
+    if (!a.value) options.push(() => a.value = sol.a);
+    if (!b.value) options.push(() => b.value = sol.b);
+    if (op.value !== sol.op) options.push(() => op.value = sol.op);
+  });
+
+  document.querySelectorAll(".grid-bottom input").forEach((i, idx) => {
+    if (!i.value && !i.readOnly) {
+      options.push(() => i.value = solution.bottom[idx]);
+    }
+  });
+
+  if (options.length) {
+    options[randomInt(0, options.length - 1)]();
+  }
+}
+
+function reset() {
+  document.querySelectorAll(".grid-bottom input").forEach((i, idx) => {
+    if (!givenBottom.has(idx)) i.value = "";
+  });
+
+  document.querySelectorAll(".cell input").forEach(i => i.value = "");
+}
+
+function newGame() {
+  generateGame();
+  draw();
+}
+
+newGame();
+</script>
+
+</body>
+</html>
