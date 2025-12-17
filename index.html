@@ -111,9 +111,9 @@ button {
 <!-- BOTÓN DE APOYO -->
 <div class="support">
   <a
-    href="https://www.mercadopago.com.ar/transferencias?alias=alexjauria.mp"
+    href="https://mpago.la/2yZTijs"
     target="_blank"
-    rel="noopener"
+    rel="noopener noreferrer"
   >
     ❤️ Apoyá a Kevin en Mercado Pago por su trabajo
   </a>
@@ -152,7 +152,6 @@ function generateGame() {
     });
   }
 
-  // Elegir entre 4 y 8 números iniciales visibles
   let cantidad = randomInt(4, 8);
   let indices = [...Array(16).keys()].sort(() => Math.random() - 0.5);
   indices.slice(0, cantidad).forEach(i => givenBottom.add(i));
@@ -241,7 +240,7 @@ function hint() {
   });
 
   if (options.length) {
-    options[randomInt(0, options.length - 1)]();
+    options[Math.floor(Math.random() * options.length)]();
   }
 }
 
